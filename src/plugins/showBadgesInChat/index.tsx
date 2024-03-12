@@ -12,6 +12,7 @@ import definePlugin, { OptionType } from "@utils/types";
 import { findByProps } from "@webpack";
 import { useEffect, useState } from "@webpack/common";
 
+let VencordBadges = {} as Record<string, Array<Record<"tooltip" | "badge", string>>>;
 let RoleIconComponent: React.ComponentType<any> = () => null;
 let roleIconClassName = "";
 
@@ -32,14 +33,13 @@ const discordBadges: readonly [number, string, string][] = Object.freeze([
 
 function useVencordDonorBadges(userID: string) {
     const [vencordDonorBadges, setVencordDonorBadges] = useState<[string, string][]>([]);
-
+    VencordBadges = {};
     useEffect(() => {
-        fetch("https://gist.githubusercontent.com/Vendicated/51a3dd775f6920429ec6e9b735ca7f01/raw/badges.csv")
-            .then(res => res.text())
+        fetch("https://badges.vencord.dev/badges.json")
+            .then(res => res.json())
             .then(data => {
-                const badges = [...data.matchAll(new RegExp(`(${userID}),([^,\n]+),([^,\n]+)`, "g"))];
-                if (badges === null) return;
-                setVencordDonorBadges(badges.map(m => [m[2], m[3]]));
+                VencordBadges = { ...data };
+                setVencordDonorBadges(VencordBadges[userID]?.map(m => [m.tooltip, m.badge]));
             })
             .catch(e => { console.error(e); });
     }, []);
@@ -50,7 +50,7 @@ function useVencordDonorBadges(userID: string) {
 function vencordDonorChatBadges(userID: string) {
     const vencordDonorBadges = useVencordDonorBadges(userID);
 
-    return vencordDonorBadges.length > 0 ? [
+    return vencordDonorBadges ? [
         <span style={{ order: settings.store.vencordDonorBadgesPosition }}>
             {vencordDonorBadges.map(badge =>
                 <RoleIconComponent
@@ -71,7 +71,7 @@ function vencordContributorChatBadge(userID: string) {
                 className={roleIconClassName}
                 name={"Vencord Contributor"}
                 size={20}
-                src={"https://cdn.discordapp.com/attachments/1033680203433660458/1092089947126780035/favicon.png"}
+                src={"https://vencord.dev/assets/favicon.png"}
             />
         </span>
     ] : [];
